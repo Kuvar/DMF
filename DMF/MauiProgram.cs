@@ -86,7 +86,6 @@ namespace DMF
             builder.Services.AddTransientWithShellRoute<ProfileViewPage, ProfileViewPageModel>("profile");
             builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
             builder.Services.AddTransientWithShellRoute<OTPVerificationPage, OTPVerificationPageModel>("otpverification");
-            //builder.Services.AddTransientWithShellRoute<HomeView, HomeViewModel>("home");
 
             return builder.Build();
         }
