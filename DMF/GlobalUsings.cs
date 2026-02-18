@@ -1,0 +1,9 @@
+global using DMF.Data;
+global using DMF.Enums;
+global using DMF.Models;
+global using DMF.PageModels;
+global using DMF.Pages;
+global using DMF.Services;
+global using DMF.Services.Interfaces;
+global using DMF.Utilities;
+global using Fonts;
