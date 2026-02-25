@@ -11,8 +11,9 @@
              x:Name="HomeViewRoot">
 
     <ContentView.Resources>
-        <converter:DisplayImageConverter x:Key="DisplayImageConverter" />
         <ResourceDictionary>
+            <converter:DisplayImageConverter x:Key="DisplayImageConverter" />
+            <converter:BoolToSvgConverter x:Key="BoolToSvgConverter" TrueIcon="like" FalseIcon="unlike"/>
             <DataTemplate x:Key="EmptyCarListTemplate">
                 <controls:EmptyCarListTemplate />
             </DataTemplate>
@@ -158,7 +159,7 @@
                                                     </Label.FormattedText>
                                                 </Label>
 
-                                                <Image Source="{FontImageSource FontFamily=FluentUI, Glyph={x:Static f:FluentUI.heart_16_regular}, Color={StaticResource White}, Size=17}">
+                                                <Image Source="{Binding IsWishlisted, Converter={StaticResource BoolToSvgConverter}}" HeightRequest="17" WidthRequest="17">
                                                     <Image.GestureRecognizers>
                                                         <TapGestureRecognizer Tapped="LikeUnlikeCommand_Tapped" />
                                                     </Image.GestureRecognizers>

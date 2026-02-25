@@ -9,7 +9,9 @@ namespace DMF.PageModels
 
     public partial class HomeViewModel : ObservableObject
     {
+        private CarFilterModel _currentFilter;
         private readonly ICarService _carService;
+        private readonly ISecureStorageService _storageService;
 
         [ObservableProperty]
         private string searchText = string.Empty;
@@ -30,14 +32,27 @@ namespace DMF.PageModels
         [ObservableProperty]
         private ViewState currentState = ViewState.Loading;
 
-        private CarFilterModel _currentFilter;
 
-        public HomeViewModel(ICarService carService)
+
+        public HomeViewModel(ICarService carService, ISecureStorageService secureStorage)
         {
             CurrentState = ViewState.Loading;
             _carService = carService;
+            _storageService = secureStorage;
             _cars = new ObservableCollection<CarFilterResult>();
             _currentFilter = new CarFilterModel();
+
+            var userIdTask = _storageService.GetAsync(AppConstants.UserId);
+            userIdTask.Wait();
+            var userIdString = userIdTask.Result;
+            if (int.TryParse(userIdString, out var userId))
+            {
+                _currentFilter.UserDetailID = userId;
+            }
+            else
+            {
+                _currentFilter.UserDetailID = 0;
+            }
         }
 
         public void Initialize()
@@ -49,7 +64,6 @@ namespace DMF.PageModels
         private async Task LoadCars()
         {
             CurrentState = ViewState.Loading;
-            //await Task.Delay(2000);
 
             Cars.Clear();
             _currentFilter.Page = 1;
@@ -59,13 +73,8 @@ namespace DMF.PageModels
             _totalRecords = 0;
 
             await LoadNextPage();
-            //var result = await _carService.GetFilteredCarsAsync(_currentFilter);
-            //var cars = result.Data?.Items as IEnumerable<CarFilterResult> ?? Enumerable.Empty<CarFilterResult>();
-            //Cars = new ObservableCollection<CarFilterResult>(cars);
-
             CurrentState = ViewState.Success;
         }
-
 
         [RelayCommand]
         private async Task LoadMoreCars()
@@ -94,7 +103,7 @@ namespace DMF.PageModels
         [RelayCommand] void Model() { }
 
         [RelayCommand]
-        void CarDetail(CarModel model)
+        void CarDetail(CarFilterResult model)
         {
             Shell.Current.GoToAsync("cardetails", new Dictionary<string, object>
             {
@@ -103,14 +112,30 @@ namespace DMF.PageModels
         }
 
         [RelayCommand]
-        void LikeUnlike(CarModel model)
+        async Task LikeUnlike(CarFilterResult model)
         {
+            try
+            {
+                var response = await _carService.ToggleWishlistAsync(7, model.ID);
 
+                if (response.Success)
+                {
+                    var car = Cars.FirstOrDefault(x => x.ID == model.ID);
+                    if (car != null)
+                        car.IsWishlisted = response.Data;
+                    OnPropertyChanged("Cars");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
         private async Task LoadNextPage()
         {
-            if (IsLoadingMore)
+            if (IsLoadingMore || _currentFilter.UserDetailID == 0)
                 return;
 
             try

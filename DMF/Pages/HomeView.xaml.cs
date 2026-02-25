@@ -17,16 +17,21 @@ public partial class HomeView : ContentView
 
     private async void LikeUnlikeCommand_Tapped(object sender, TappedEventArgs e)
     {
-        if (sender is not VisualElement view)
-            return;
-
-        await TouchAnimation.AnimateAsync(view);
-
-        if (view.BindingContext is CarModel car &&
-            BindingContext is HomeViewModel vm &&
-            vm.LikeUnlikeCommand.CanExecute(car))
+        try
         {
-            vm.LikeUnlikeCommand.Execute(car);
+            if (sender is not VisualElement view)
+                return;
+
+            await TouchAnimation.AnimateAsync(view);
+
+            if (view.BindingContext is CarFilterResult car && BindingContext is HomeViewModel vm && vm.LikeUnlikeCommand.CanExecute(car))
+            {
+                vm.LikeUnlikeCommand.Execute(car);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw;
         }
     }
 
@@ -37,7 +42,7 @@ public partial class HomeView : ContentView
 
         await TouchAnimation.AnimateAsync(view);
 
-        if (view.BindingContext is CarModel car &&
+        if (view.BindingContext is CarFilterResult car &&
             BindingContext is HomeViewModel vm &&
             vm.CarDetailCommand.CanExecute(car))
         {

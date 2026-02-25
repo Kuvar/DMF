@@ -22,17 +22,23 @@ namespace DMF.Services
                    ?? new List<CarModel>();
         }
 
-        public async Task<List<CarModel>> GetFavoriteCarsAsync(int userId)
+        public async Task<ApiResponse<IEnumerable<CarFilterResult>>> GetFavoriteCarsAsync(int userId)
         {
-            using var stream = await FileSystem.OpenAppPackageFileAsync("cars.json");
-            using var reader = new StreamReader(stream);
+            return await _apiService.GetAsync<IEnumerable<CarFilterResult>>($"wishlist/{userId}");
+        }
 
-            var json = await reader.ReadToEndAsync();
+        public async Task<ApiResponse<bool>> ToggleWishlistAsync(int userId, int carId)
+        {
+            try
+            {
+                var endpoint = $"wishlist/toggle?userDetailId={userId}&carDetailId={carId}";
 
-            var allCars = JsonSerializer.Deserialize<List<CarModel>>(json)
-                          ?? new List<CarModel>();
-
-            return allCars.Take(5).ToList();
+                return await _apiService.PostAsync<object, bool>(endpoint, new { });
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         // --------------------------------------------------
@@ -83,6 +89,7 @@ namespace DMF.Services
             AddInt("drivenMore", f.DrivenMore);
             AddInt("drivenLess", f.DrivenLess);
             AddInt("age", f.Age);
+            AddInt("userDetailID", f.UserDetailID);
             AddInt("dealersID", f.DealersID);
 
             // always include these

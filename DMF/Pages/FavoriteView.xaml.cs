@@ -4,9 +4,15 @@ public partial class FavoriteView : ContentView
 {
     public FavoriteView(FavoriteViewModel vm)
     {
-        InitializeComponent();
-
-        this.BindingContext = vm;
+        try
+        {
+            InitializeComponent();
+            this.BindingContext = vm;
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
     }
 
     private async void LikeUnlikeCommand_Tapped(object sender, TappedEventArgs e)
@@ -16,7 +22,7 @@ public partial class FavoriteView : ContentView
 
         await TouchAnimation.AnimateAsync(view);
 
-        if (view.BindingContext is CarModel car &&
+        if (view.BindingContext is CarFilterResult car &&
             BindingContext is FavoriteViewModel vm &&
             vm.LikeUnlikeCommand.CanExecute(car))
         {
@@ -31,7 +37,7 @@ public partial class FavoriteView : ContentView
 
         await TouchAnimation.AnimateAsync(view);
 
-        if (view.BindingContext is CarModel car &&
+        if (view.BindingContext is CarFilterResult car &&
             BindingContext is FavoriteViewModel vm &&
             vm.CarDetailCommand.CanExecute(car))
         {

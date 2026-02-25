@@ -17,6 +17,7 @@
 
         public int Age { get; set; } = 0;
 
+        public int UserDetailID { get; set; } = 0;
         public int DealersID { get; set; } = 0;
 
         public int IsActive { get; set; } = 1;

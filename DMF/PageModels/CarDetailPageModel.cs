@@ -6,7 +6,7 @@ namespace DMF.PageModels
     public partial class CarDetailPageModel : ObservableObject, IQueryAttributable
     {
         [ObservableProperty]
-        private CarModel carDetail;
+        private CarFilterResult carDetail;
 
         [ObservableProperty]
         private int currentImageIndex;
@@ -14,7 +14,7 @@ namespace DMF.PageModels
         [ObservableProperty] private bool isFavorite;
 
         public string ImageCounter =>
-            $"{CurrentImageIndex + 1}/{CarDetail?.Images?.Images.Count()}";
+            $"{CurrentImageIndex + 1}/{CarDetail?.Images?.Count()}";
         public string FavoriteIcon => IsFavorite ? "ic_heart_filled.png" : "ic_heart.png";
 
         partial void OnCurrentImageIndexChanged(int value)
@@ -24,14 +24,14 @@ namespace DMF.PageModels
 
         public CarDetailPageModel()
         {
-            carDetail = new CarModel();
+            carDetail = new CarFilterResult();
         }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             if (query.TryGetValue("carDetail", out var car))
             {
-                CarDetail = (CarModel)car ?? new CarModel();
+                CarDetail = (CarFilterResult)car ?? new CarFilterResult();
                 OnPropertyChanged(nameof(ImageCounter));
             }
         }
@@ -53,7 +53,7 @@ namespace DMF.PageModels
         [RelayCommand]
         private void NextImage()
         {
-            if (CurrentImageIndex < CarDetail?.Images?.Images.Count - 1)
+            if (CurrentImageIndex < CarDetail?.Images.Count - 1)
                 CurrentImageIndex++;
         }
 

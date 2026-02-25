@@ -1,6 +1,8 @@
-﻿namespace DMF.Models
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace DMF.Models
 {
-    public class CarFilterResult
+    public partial class CarFilterResult : ObservableObject
     {
         // -------- CarDetail --------
         public int ID { get; set; }
@@ -36,6 +38,9 @@
         public bool? HillHold { get; set; }
         public GeoLocationDto? Location { get; set; }
         public DateTime? CreatedDate { get; set; }
+
+        [ObservableProperty]
+        private bool isWishlisted;
 
         // -------- Images (API-friendly) --------
         public List<string> Images { get; set; } = new();

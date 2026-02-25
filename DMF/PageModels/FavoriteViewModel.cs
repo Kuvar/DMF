@@ -10,7 +10,7 @@ namespace DMF.PageModels
         private readonly ICarService _carService;
 
         [ObservableProperty]
-        private ObservableCollection<CarModel> _cars;
+        private ObservableCollection<CarFilterResult> _cars;
 
         [ObservableProperty]
         private ViewState currentState = ViewState.Loading;
@@ -19,17 +19,20 @@ namespace DMF.PageModels
         {
             CurrentState = new ViewState();
             _carService = carService;
-            Cars = new ObservableCollection<CarModel>();
+            Cars = new ObservableCollection<CarFilterResult>();
         }
 
         [RelayCommand]
         private async Task LoadCars()
         {
             CurrentState = ViewState.Loading;
-            await Task.Delay(1000);
 
-            var result = await _carService.GetFavoriteCarsAsync(1);
-            Cars = new ObservableCollection<CarModel>(result);
+            var result = await _carService.GetFavoriteCarsAsync(7);
+
+            var page = result.Data;
+            if (page == null)
+                return;
+            Cars = new ObservableCollection<CarFilterResult>(page);
 
             CurrentState = ViewState.Success;
         }
@@ -46,7 +49,7 @@ namespace DMF.PageModels
         }
 
         [RelayCommand]
-        void CarDetail(CarModel model)
+        void CarDetail(CarFilterResult model)
         {
             Shell.Current.GoToAsync("cardetails", new Dictionary<string, object>
             {
