@@ -1,14 +1,17 @@
-﻿using System.Text.Json;
+﻿using DMF.Helpers;
+using System.Text.Json;
 
 namespace DMF.Services
 {
     public class CarService : ICarService
     {
         private readonly IApiService _apiService;
+        private readonly IBlobService _blobService;
 
-        public CarService(IApiService apiService)
+        public CarService(IApiService apiService, IBlobService blobService)
         {
             _apiService = apiService;
+            _blobService = blobService;
         }
 
         public async Task<List<CarModel>> GetCarsAsync()
@@ -108,5 +111,95 @@ namespace DMF.Services
                 .GetAsync<PagedResponse<CarFilterResult>>(endpoint);
         }
 
+
+        public async Task<ApiResponse<bool>> AddCarAsync(AddCarModel model, IEnumerable<ImageItem> images, string dealerName, int dealerId, Func<double, Task>? progressCallback = null)
+        {
+            if (images == null || !images.Any())
+                throw new Exception("At least one image is required.");
+
+            if (images.Count() > 20)
+                throw new Exception("Maximum 20 images allowed.");
+
+            // --------------------------------------
+            // STEP 1: Create Car (without images)
+            // --------------------------------------
+            var createResponse = await _apiService
+                .PostAsync<AddCarModel, int>("cars", model);
+
+            if (!createResponse.Success || createResponse.Data == 0)
+                throw new Exception("Car creation failed.");
+
+            var carId = createResponse.Data;
+
+            // --------------------------------------
+            // STEP 2: Upload Images to Blob
+            // --------------------------------------
+            var uploadedUrls = new List<string>();
+            var uploadedBlobs = new List<string>();
+
+            var safeDealerName = dealerName
+                .Replace(" ", "_")
+                .ToLower();
+
+            var dealerFolder = $"{safeDealerName}_{dealerId}";
+            var carFolder = $"{carId}";
+
+            int total = images.Count();
+            int completed = 0;
+
+            try
+            {
+                var tasks = images.Select(async (img, index) =>
+                {
+                    var extension = Path.GetExtension(img.FilePath);
+                    var fileName = $"img_{index + 1}_{Guid.NewGuid():N}{extension}";
+                    var blobPath = $"cars/{dealerFolder}/{carFolder}/{fileName}";
+
+                    // 🔥 Compress image before upload
+                    using var compressedStream = ImageHelper.CompressImage(img.FilePath, 70);
+
+                    // 🔁 Retry logic
+                    var url = await RetryHelper.RetryAsync(() =>
+                        _blobService.UploadAsync(compressedStream, blobPath, "image/jpeg")
+                    );
+
+                    lock (uploadedUrls)
+                    {
+                        uploadedUrls.Add(url);
+                        uploadedBlobs.Add(url);
+                    }
+
+                    // 📊 Progress update
+                    Interlocked.Increment(ref completed);
+                    var progress = (double)completed / total;
+
+                    if (progressCallback != null)
+                        await progressCallback(progress);
+                });
+
+                await Task.WhenAll(tasks);
+            }
+            catch
+            {
+                // ❌ Rollback uploaded images
+                foreach (var blob in uploadedBlobs)
+                {
+                    await _blobService.DeleteAsync(blob);
+                }
+
+                throw;
+            }
+
+            // --------------------------------------
+            // STEP 3: Update Car Images in DB
+            // --------------------------------------
+            var updateResponse = await _apiService
+                .PutAsync<List<string>, bool>($"cars/{carId}/images", uploadedUrls);
+
+            if (!updateResponse.Success)
+                throw new Exception("Failed to update car images.");
+
+            return updateResponse;
+        }
     }
 }

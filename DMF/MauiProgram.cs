@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Syncfusion.Maui.Toolkit.Hosting;
 using PopupService = DMF.Services.PopupService;
+
+
 #if ANDROID
 using Android.Views;
 #endif
@@ -29,6 +31,14 @@ namespace DMF
                         handler.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
                         handler.PlatformView.BackgroundTintList = null;
                         System.Diagnostics.Debug.WriteLine("Android Entry background removed");
+                    });
+
+                    Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+                    {
+                        handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+                        handler.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+                        handler.PlatformView.BackgroundTintList = null;
+                        System.Diagnostics.Debug.WriteLine("Android Picker background removed");
                     });
 #endif
                 })
@@ -84,6 +94,10 @@ namespace DMF
             builder.Services.AddTransientWithShellRoute<ContactUsPage, ContactUsPageModel>("contactus");
             builder.Services.AddTransientWithShellRoute<CarDetailPage, CarDetailPageModel>("cardetails");
             builder.Services.AddTransientWithShellRoute<ProfileViewPage, ProfileViewPageModel>("profile");
+            builder.Services.AddTransientWithShellRoute<AddCarStep1Page, AddCarViewModel>("AddCarStep1");
+            builder.Services.AddTransientWithShellRoute<AddCarStep2Page, AddCarViewModel>("AddCarStep2");
+            builder.Services.AddTransientWithShellRoute<AddCarStep3Page, AddCarViewModel>("AddCarStep3");
+            builder.Services.AddTransientWithShellRoute<AddImageUploadPage, AddCarViewModel>("AddCarStep4");
             builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
             builder.Services.AddTransientWithShellRoute<OTPVerificationPage, OTPVerificationPageModel>("otpverification");
 

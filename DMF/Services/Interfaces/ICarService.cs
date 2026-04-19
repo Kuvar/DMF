@@ -12,5 +12,7 @@
         Task<ApiResponse<PagedResponse<CarFilterResult>>> GetFilteredCarsAsync(CarFilterModel f);
 
         Task<ApiResponse<bool>> ToggleWishlistAsync(int userId, int carId);
+
+        Task<ApiResponse<bool>> AddCarAsync(AddCarModel model, IEnumerable<ImageItem> images, string dealerName, int dealerId, Func<double, Task>? progressCallback = null);
     }
 }
