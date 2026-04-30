@@ -112,27 +112,36 @@ namespace DMF.Services
         }
 
 
-        public async Task<ApiResponse<bool>> AddCarAsync(AddCarModel model, IEnumerable<ImageItem> images, string dealerName, int dealerId, Func<double, Task>? progressCallback = null)
+        public async Task<ApiResponse<bool>> AddCarAsync(
+    AddCarModel model,
+    IEnumerable<ImageItem> images,
+    string dealerName,
+    int dealerId,
+    Func<double, Task>? progressCallback = null)
         {
-            if (images == null || !images.Any())
+            if (images == null)
+                throw new Exception("Images cannot be null.");
+
+            var imageList = images.ToList();
+
+            if (!imageList.Any())
                 throw new Exception("At least one image is required.");
 
-            if (images.Count() > 20)
+            if (imageList.Count > 20)
                 throw new Exception("Maximum 20 images allowed.");
 
             // --------------------------------------
-            // STEP 1: Create Car (without images)
+            // STEP 1: Create Car
             // --------------------------------------
-            var createResponse = await _apiService
-                .PostAsync<AddCarModel, int>("cars", model);
+            var createResponse = await _apiService.PostAsync<AddCarModel, int>("cars", model);
 
-            if (!createResponse.Success || createResponse.Data == 0)
-                throw new Exception("Car creation failed.");
+            if (!createResponse.Success || createResponse.Data == null || createResponse.Data == 0)
+                throw new Exception(createResponse.Message ?? "Car creation failed.");
 
             var carId = createResponse.Data;
 
             // --------------------------------------
-            // STEP 2: Upload Images to Blob
+            // STEP 2: Upload Images
             // --------------------------------------
             var uploadedUrls = new List<string>();
             var uploadedBlobs = new List<string>();
@@ -144,24 +153,23 @@ namespace DMF.Services
             var dealerFolder = $"{safeDealerName}_{dealerId}";
             var carFolder = $"{carId}";
 
-            int total = images.Count();
+            int total = imageList.Count;
             int completed = 0;
 
             try
             {
-                var tasks = images.Select(async (img, index) =>
+                var tasks = imageList.Select(async (img, index) =>
                 {
                     var extension = Path.GetExtension(img.FilePath);
                     var fileName = $"img_{index + 1}_{Guid.NewGuid():N}{extension}";
                     var blobPath = $"cars/{dealerFolder}/{carFolder}/{fileName}";
 
-                    // 🔥 Compress image before upload
-                    using var compressedStream = ImageHelper.CompressImage(img.FilePath, 70);
-
-                    // 🔁 Retry logic
-                    var url = await RetryHelper.RetryAsync(() =>
-                        _blobService.UploadAsync(compressedStream, blobPath, "image/jpeg")
-                    );
+                    // ⚠️ IMPORTANT: create stream INSIDE retry
+                    var url = await RetryHelper.RetryAsync(async () =>
+                    {
+                        using var stream = ImageHelper.CompressImage(img.FilePath, 70);
+                        return await _blobService.UploadAsync(stream, blobPath, "image/jpeg");
+                    });
 
                     lock (uploadedUrls)
                     {
@@ -169,9 +177,9 @@ namespace DMF.Services
                         uploadedBlobs.Add(url);
                     }
 
-                    // 📊 Progress update
-                    Interlocked.Increment(ref completed);
-                    var progress = (double)completed / total;
+                    // 📊 Progress
+                    var done = Interlocked.Increment(ref completed);
+                    var progress = (double)done / total;
 
                     if (progressCallback != null)
                         await progressCallback(progress);
@@ -179,25 +187,31 @@ namespace DMF.Services
 
                 await Task.WhenAll(tasks);
             }
-            catch
+            catch (Exception ex)
             {
-                // ❌ Rollback uploaded images
+                // ❌ Rollback uploaded blobs
                 foreach (var blob in uploadedBlobs)
                 {
-                    await _blobService.DeleteAsync(blob);
+                    try
+                    {
+                        await _blobService.DeleteAsync(blob);
+                    }
+                    catch
+                    {
+                        // ignore cleanup failure
+                    }
                 }
 
-                throw;
+                throw new Exception("Image upload failed: " + ex.Message);
             }
 
             // --------------------------------------
-            // STEP 3: Update Car Images in DB
+            // STEP 3: Update Images in DB
             // --------------------------------------
-            var updateResponse = await _apiService
-                .PutAsync<List<string>, bool>($"cars/{carId}/images", uploadedUrls);
+            var updateResponse = await _apiService.PutAsync<List<string>, bool>($"cars/{carId}/images", uploadedUrls);
 
             if (!updateResponse.Success)
-                throw new Exception("Failed to update car images.");
+                throw new Exception(updateResponse.Message ?? "Failed to update car images.");
 
             return updateResponse;
         }

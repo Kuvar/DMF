@@ -65,6 +65,9 @@ namespace DMF
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
+            builder.Services.AddSingleton<IBlobService>(sp => new BlobService("YOUR_CONNECTION_STRING", "cars"
+    ));
+
             builder.Services.AddSingleton<AppTabsPage>();
             builder.Services.AddSingleton<ProjectRepository>();
             builder.Services.AddSingleton<TaskRepository>();
@@ -83,11 +86,12 @@ namespace DMF
             builder.Services.AddTransient<AccountView, AccountViewModel>();
             builder.Services.AddTransient<FavoriteView, FavoriteViewModel>();
 
-            builder.Services.AddSingleton<ICarService, CarService>();
-            builder.Services.AddSingleton<IAuthService, AuthService>();
-            builder.Services.AddSingleton<IPopupService, PopupService>();
-            builder.Services.AddSingleton<IUserDetailService, UserDetailService>();
-            builder.Services.AddSingleton<ISecureStorageService, SecureStorageService>();
+            builder.Services.AddTransient<ICarService, CarService>();
+            builder.Services.AddTransient<IAuthService, AuthService>();
+            builder.Services.AddTransient<IPopupService, PopupService>();
+            builder.Services.AddTransient<IUserDetailService, UserDetailService>();
+            builder.Services.AddTransient<ISecureStorageService, SecureStorageService>();
+
 
             builder.Services.AddTransientWithShellRoute<TaskDetailPage, TaskDetailPageModel>("task");
             builder.Services.AddTransientWithShellRoute<WishlistPage, WishlistPageModel>("wishlist");
